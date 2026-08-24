@@ -392,6 +392,16 @@
     </div>
   </div>
 
+  <!-- MODAL: conferma email dopo registrazione -->
+  <div id="registerInfoModal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center">
+      <p class="text-4xl mb-3">📧</p>
+      <h3 class="text-lg font-black text-white mb-2">Controlla la tua email</h3>
+      <p class="text-xs text-slate-400 mb-4 leading-relaxed">Riceverai nella mail indicata una comunicazione da parte di Firebase a conferma dell'avvenuta registrazione. Clicca su "Continua" per iniziare a configurare la tua festa!</p>
+      <button id="registerInfoContinueBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-2xl py-2.5 text-xs uppercase tracking-wider transition">Continua</button>
+    </div>
+  </div>
+
   <!-- MODAL: primo avvio (onboarding nuovo account) -->
   <div id="onboardingModal" class="hidden fixed inset-0 z-[120] items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 max-w-sm w-full shadow-2xl">
@@ -6307,28 +6317,41 @@
       if (authError) authError.classList.add('hidden');
       action(firebase.auth(), email, pwd).catch(err => showAuthError(err.message || 'Accesso non riuscito.'));
     }
+    let suppressAuthReload = false;
+    function bindAccountAndReload(user) {
+      if (EVENT_ID !== user.uid) {
+        EVENT_ID = user.uid;
+        localStorage.setItem(EVENT_ID_KEY, user.uid);
+        location.reload();
+      }
+    }
     if (authLoginBtn) {
       authLoginBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.signInWithEmailAndPassword(email, pwd)));
     }
     if (authRegisterBtn) {
       authRegisterBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.createUserWithEmailAndPassword(email, pwd).then((cred) => {
         if (cred.user) cred.user.sendEmailVerification().catch(() => {});
-        showToast('✅ Account creato: controlla la tua email per confermarla');
+        suppressAuthReload = true;
+        const modal = el('registerInfoModal');
+        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
       })));
+    }
+    const registerInfoContinueBtn = el('registerInfoContinueBtn');
+    if (registerInfoContinueBtn) {
+      registerInfoContinueBtn.addEventListener('click', () => {
+        const modal = el('registerInfoModal');
+        if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+        suppressAuthReload = false;
+        const user = firebase.auth().currentUser;
+        if (user) bindAccountAndReload(user);
+      });
     }
     if (firebaseEnabled && typeof firebase !== 'undefined' && firebase.auth) {
       firebase.auth().onAuthStateChanged((user) => {
         if (!user) return;
-        // Isola i dati: ogni account (uid) usa la propria 'stanza' Firestore,
-        // invece del codice evento casuale condiviso. Un solo reload dopo il
-        // login garantisce che tutti i riferimenti Firestore già costruiti
-        // altrove nel programma puntino subito al percorso corretto.
-        if (EVENT_ID !== user.uid) {
-          EVENT_ID = user.uid;
-          localStorage.setItem(EVENT_ID_KEY, user.uid);
-          location.reload();
-          return;
-        }
+        if (suppressAuthReload) return;
+        // Isola i dati: ogni account (uid) usa la propria 'stanza' Firestore.
+        if (EVENT_ID !== user.uid) { bindAccountAndReload(user); return; }
         if (welcomeScreen) welcomeScreen.classList.add('hidden');
         const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
         if (isNewUser && (!state.eventName || state.eventName === 'La mia Sagra')) {
