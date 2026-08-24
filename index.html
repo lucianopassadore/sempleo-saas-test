@@ -298,7 +298,6 @@
       <span class="sempleo-logo-bg" style="width:70px;height:20px;" role="img" aria-label="Sempleo"></span>
       <p class="text-[10px] text-slate-500">Gestione Eventi</p>
       <p class="text-[11px] sm:text-xs text-slate-500 mt-1">Idea, progetto e realizzazione by <b class="text-slate-300">Luciano Passadore</b></p>
-      <button type="button" id="openPrivacyPolicyBtn1" class="text-[11px] text-slate-500 underline mt-2">Privacy Policy</button>
     </div>
   </div>
 
@@ -6360,7 +6359,7 @@
     if (authLoginBtn) {
       authLoginBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.signInWithEmailAndPassword(email, pwd)));
     }
-    ['openPrivacyPolicyBtn1', 'openPrivacyPolicyBtn2'].forEach(id => {
+    ['openPrivacyPolicyBtn2'].forEach(id => {
       const btn = el(id);
       if (btn) btn.addEventListener('click', () => {
         const modal = el('privacyPolicyModal');
