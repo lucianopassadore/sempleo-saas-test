@@ -290,6 +290,7 @@
           <button id="authRegisterBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-xl py-2 text-xs uppercase tracking-wide transition">Crea account</button>
         </div>
         <button id="authForgotBtn" type="button" class="text-slate-500 hover:text-slate-300 text-[11px] underline">Password dimenticata?</button>
+        <p class="text-[10px] text-slate-600">Registrandoti accetti la <button type="button" id="openPrivacyPolicyBtn2" class="underline text-slate-500 hover:text-slate-300">Privacy Policy</button></p>
         <p id="authError" class="hidden text-red-400 text-xs font-bold"></p>
       </div>
     </div>
@@ -297,6 +298,7 @@
       <span class="sempleo-logo-bg" style="width:70px;height:20px;" role="img" aria-label="Sempleo"></span>
       <p class="text-[10px] text-slate-500">Gestione Eventi</p>
       <p class="text-[11px] sm:text-xs text-slate-500 mt-1">Idea, progetto e realizzazione by <b class="text-slate-300">Luciano Passadore</b></p>
+      <button type="button" id="openPrivacyPolicyBtn1" class="text-[11px] text-slate-500 underline mt-2">Privacy Policy</button>
     </div>
   </div>
 
@@ -390,6 +392,28 @@
         <button id="exitNoSaveBtn" class="bg-transparent border border-red-800 text-red-400 hover:bg-red-950/40 rounded-2xl py-2.5 text-xs font-bold uppercase tracking-wider transition">Esci senza salvare</button>
         <button id="exitCancelBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-2xl py-2.5 text-xs uppercase tracking-wider transition">Annulla</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Privacy Policy -->
+  <div id="privacyPolicyModal" class="hidden fixed inset-0 z-[130] items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 max-w-lg w-full shadow-2xl max-h-[85vh] overflow-y-auto text-left">
+      <h3 class="text-lg font-black text-white mb-1">Informativa sulla Privacy</h3>
+      <p class="text-[11px] text-slate-500 mb-4">Ultimo aggiornamento: 24 agosto 2026</p>
+      <div class="text-xs text-slate-300 leading-relaxed space-y-3">
+        <p><b class="text-slate-100">1. Titolare del trattamento</b><br>Luciano Passadore, contattabile all'indirizzo sempleo.saas@gmail.com.</p>
+        <p><b class="text-slate-100">2. Dati raccolti e finalità</b><br>
+        a) Dati account (email, password): raccolti alla registrazione tramite Firebase Authentication (Google) per l'accesso al servizio. La password è gestita in forma cifrata e non è mai visibile al Titolare.<br>
+        b) Dati evento (nome, logo, tavoli): inseriti dall'utente per configurare il proprio evento, salvati su Firebase Firestore (Google Cloud).<br>
+        c) Dati ospiti (nome, telefono, orario): raccolti tramite il modulo di prenotazione QR. Per questi dati l'organizzatore (associazione/proloco) è Titolare del trattamento; Sempleo agisce come Responsabile del trattamento ai sensi dell'art. 28 GDPR.</p>
+        <p><b class="text-slate-100">3. Base giuridica</b><br>Esecuzione del contratto di fornitura del servizio; consenso esplicito per i dati ospiti raccolti tramite il modulo di prenotazione.</p>
+        <p><b class="text-slate-100">4. Conservazione</b><br>I dati account restano fino a richiesta di cancellazione. I dati evento/ospiti restano a disposizione dell'organizzatore per il tempo necessario alla gestione dell'evento.</p>
+        <p><b class="text-slate-100">5. Trasferimento dati</b><br>I dati sono trattati tramite Google Firebase, con possibili trasferimenti extra-UE nel rispetto delle clausole contrattuali standard della Commissione Europea.</p>
+        <p><b class="text-slate-100">6. Diritti dell'interessato</b><br>In ogni momento puoi richiedere accesso, rettifica, cancellazione, limitazione, portabilità o opporti al trattamento scrivendo a sempleo.saas@gmail.com. Puoi anche proporre reclamo al Garante Privacy (www.garanteprivacy.it).</p>
+        <p><b class="text-slate-100">7. Cookie e local storage</b><br>Il servizio usa la memoria locale del browser (localStorage) per mantenere l'accesso e i dati sul dispositivo, senza cookie di profilazione di terze parti.</p>
+        <p><b class="text-slate-100">8. Modifiche</b><br>Questa informativa può essere aggiornata; la data in cima al documento indica l'ultima revisione.</p>
+      </div>
+      <button id="privacyPolicyCloseBtn" class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-2xl uppercase tracking-wider text-xs py-2.5 transition">Chiudi</button>
     </div>
   </div>
 
@@ -6335,6 +6359,20 @@
     }
     if (authLoginBtn) {
       authLoginBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.signInWithEmailAndPassword(email, pwd)));
+    }
+    ['openPrivacyPolicyBtn1', 'openPrivacyPolicyBtn2'].forEach(id => {
+      const btn = el(id);
+      if (btn) btn.addEventListener('click', () => {
+        const modal = el('privacyPolicyModal');
+        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+      });
+    });
+    const privacyPolicyCloseBtn = el('privacyPolicyCloseBtn');
+    if (privacyPolicyCloseBtn) {
+      privacyPolicyCloseBtn.addEventListener('click', () => {
+        const modal = el('privacyPolicyModal');
+        if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+      });
     }
     const authForgotBtn = el('authForgotBtn');
     if (authForgotBtn) {
