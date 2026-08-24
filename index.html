@@ -6332,9 +6332,9 @@
       authRegisterBtn.addEventListener('click', () => {
         suppressAuthReload = true;
         runAuthAction((auth, email, pwd) => auth.createUserWithEmailAndPassword(email, pwd).then((cred) => {
-          if (cred.user) cred.user.sendEmailVerification().catch(() => {});
           const modal = el('registerInfoModal');
           if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+          if (cred.user) cred.user.sendEmailVerification().catch((err) => showToast('⚠️ Email non inviata: ' + (err.message || 'riprova più tardi')));
         }).catch((err) => { suppressAuthReload = false; throw err; }));
       });
     }
