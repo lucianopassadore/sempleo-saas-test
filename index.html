@@ -6329,12 +6329,14 @@
       authLoginBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.signInWithEmailAndPassword(email, pwd)));
     }
     if (authRegisterBtn) {
-      authRegisterBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.createUserWithEmailAndPassword(email, pwd).then((cred) => {
-        if (cred.user) cred.user.sendEmailVerification().catch(() => {});
+      authRegisterBtn.addEventListener('click', () => {
         suppressAuthReload = true;
-        const modal = el('registerInfoModal');
-        if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-      })));
+        runAuthAction((auth, email, pwd) => auth.createUserWithEmailAndPassword(email, pwd).then((cred) => {
+          if (cred.user) cred.user.sendEmailVerification().catch(() => {});
+          const modal = el('registerInfoModal');
+          if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+        }).catch((err) => { suppressAuthReload = false; throw err; }));
+      });
     }
     const registerInfoContinueBtn = el('registerInfoContinueBtn');
     if (registerInfoContinueBtn) {
