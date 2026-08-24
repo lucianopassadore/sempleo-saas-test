@@ -289,6 +289,7 @@
           <button id="authLoginBtn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl py-2 text-xs uppercase tracking-wide transition">Accedi</button>
           <button id="authRegisterBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-xl py-2 text-xs uppercase tracking-wide transition">Crea account</button>
         </div>
+        <button id="authForgotBtn" type="button" class="text-slate-500 hover:text-slate-300 text-[11px] underline">Password dimenticata?</button>
         <p id="authError" class="hidden text-red-400 text-xs font-bold"></p>
       </div>
     </div>
@@ -330,8 +331,8 @@
             <button data-target="fullscreenBtn" class="main-menu-item w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700 transition text-left border-b border-slate-700">⛶ <span>Schermo intero</span></button>
             <details class="border-b border-slate-700">
               <summary class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700 transition cursor-pointer select-none">📩 <span>Contatti</span></summary>
-              <a href="mailto:sempleo.saas@gmail.com?subject=Assistenza" class="block px-4 py-2.5 pl-11 text-xs font-bold text-slate-300 hover:bg-slate-700 transition">Assistenza</a>
-              <a href="mailto:sempleo.saas@gmail.com?subject=Richiesta commerciale" class="block px-4 py-2.5 pl-11 text-xs font-bold text-slate-300 hover:bg-slate-700 transition">Commerciale</a>
+              <button type="button" class="contact-email-btn block w-full text-left px-4 py-2.5 pl-11 text-xs font-bold text-slate-300 hover:bg-slate-700 transition">Assistenza</button>
+              <button type="button" class="contact-email-btn block w-full text-left px-4 py-2.5 pl-11 text-xs font-bold text-slate-300 hover:bg-slate-700 transition">Commerciale</button>
             </details>
             <button data-target="exitAppBtn" class="main-menu-item w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-950/40 transition text-left">🚪 <span>Esci dal programma</span></button>
           </div>
@@ -5323,6 +5324,13 @@
           }
         });
       });
+      document.querySelectorAll('.contact-email-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const email = 'sempleo.saas@gmail.com';
+          if (navigator.clipboard) navigator.clipboard.writeText(email).catch(() => {});
+          showToast('📩 ' + email + ' (copiata)');
+        });
+      });
     }
 
     // Help
@@ -6327,6 +6335,17 @@
     }
     if (authLoginBtn) {
       authLoginBtn.addEventListener('click', () => runAuthAction((auth, email, pwd) => auth.signInWithEmailAndPassword(email, pwd)));
+    }
+    const authForgotBtn = el('authForgotBtn');
+    if (authForgotBtn) {
+      authForgotBtn.addEventListener('click', () => {
+        const email = authEmailInput ? authEmailInput.value.trim() : '';
+        if (!email) { showAuthError('Scrivi la tua email nel campo sopra, poi clicca di nuovo qui.'); return; }
+        if (!firebaseEnabled || typeof firebase === 'undefined' || !firebase.auth) { showAuthError('Funzione non disponibile.'); return; }
+        firebase.auth().sendPasswordResetEmail(email)
+          .then(() => showToast('✅ Email per reimpostare la password inviata'))
+          .catch(err => showAuthError(err.message || 'Invio non riuscito.'));
+      });
     }
     if (authRegisterBtn) {
       authRegisterBtn.addEventListener('click', () => {
