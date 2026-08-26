@@ -2488,7 +2488,7 @@
     if (emptyState) emptyState.style.display = hasImg ? 'none' : 'block';
     if (mapInner) mapInner.style.display = hasImg ? 'inline-block' : 'none';
     if (zoomControls) zoomControls.classList.toggle('hidden', !hasImg);
-    if (hasImg && bgImg) bgImg.src = state.bgImage;
+    if (hasImg && bgImg && bgImg.src !== state.bgImage) bgImg.src = state.bgImage;
 
     if (mapInner) {
       mapInner.querySelectorAll('.table-marker').forEach(m => m.remove());
@@ -5040,7 +5040,14 @@
       const tableNumberInput = el('newTableNumberInput');
       let number = parseInt(tableNumberInput ? tableNumberInput.value : curNextNumber()) || curNextNumber();
       if (curTables().some(x => x.number === number)) {
-        if (!confirm('Il numero tavolo ' + number + ' è già assegnato a un altro tavolo. Vuoi comunque usarlo anche qui?')) return;
+        const keepDuplicate = confirm('Il numero tavolo ' + number + ' è già assegnato a un altro tavolo. Vuoi comunque usarlo anche qui (tavolo duplicato)? Premi Annulla per rinumerare automaticamente in avanti (+1) i tavoli successivi e liberare il numero ' + number + '.');
+        if (!keepDuplicate) {
+          curTables()
+            .filter(x => x.number >= number)
+            .sort((a, b) => b.number - a.number)
+            .forEach(x => { x.number++; });
+          if (curNextNumber() > number) setCurNextNumber(curNextNumber() + 1);
+        }
       }
       const nameInput = el('newNameInput');
       const phoneInput = el('newPhoneInput');
@@ -5297,6 +5304,17 @@
 
   // ====== INIT ======
   function init() {
+    // I tavoli sono dimensionati in base alla larghezza a schermo dell'immagine
+    // di sfondo (bgImg.getBoundingClientRect()): finché l'immagine non ha
+    // finito di caricarsi quella larghezza è 0/instabile, quindi il primo
+    // renderMap() (chiamato da load(), qui sotto) disegna i tavoli con una
+    // scala provvisoria sbagliata. Va agganciato PRIMA di load() perché
+    // l'immagine potrebbe risultare già in cache e scaricarsi subito. Non
+    // appena l'immagine è pronta rifacciamo un render con la misura corretta,
+    // così i tavoli non "saltano" di dimensione alla prima interazione.
+    const bgImgEl = el('bgImg');
+    if (bgImgEl) bgImgEl.addEventListener('load', renderMap);
+
     load();
     initFirebaseSync();
 
