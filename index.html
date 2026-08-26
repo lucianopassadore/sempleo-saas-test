@@ -1179,7 +1179,7 @@
 
   let selectedId = null;
   let dragging = null;
-  let newShapeState = { shape: 'rect', w: 30, h: 55 };
+  let newShapeState = { shape: 'rect', w: 30, h: 77 };
   let pendingTablePos = null;
   let detailShapeState = null;
   let mergeTableTargetId = null;
@@ -2397,8 +2397,8 @@
     // in arrivo, non su quanto stava impostato nel riquadro admin.
     const seatsForShape = res.seats || 4;
     const autoShape = (seatsForShape >= 1 && seatsForShape <= 4)
-      ? { shape: 'square', w: 33, h: 35 }
-      : { shape: 'rect', w: 30, h: 55 };
+      ? { shape: 'square', w: SHAPE_DEFAULTS.square.w, h: SHAPE_DEFAULTS.square.h }
+      : { shape: 'rect', w: SHAPE_DEFAULTS.rect.w, h: SHAPE_DEFAULTS.rect.h };
 
     const newTable = {
       id: uid(),
@@ -2465,8 +2465,8 @@
 
   // ====== SHAPE DEFAULTS ======
   const SHAPE_DEFAULTS = {
-    rect: { label: 'Rettangolo', icon: '▭', w: 30, h: 55 },
-    square: { label: 'Quadrato', icon: '⬜', w: 33, h: 35 },
+    rect: { label: 'Rettangolo', icon: '▭', w: 30, h: 77 },
+    square: { label: 'Quadrato', icon: '⬜', w: 34, h: 34 },
     circle: { label: 'Rotondo', icon: '⚫', w: 40, h: 40 }
   };
   const STATUS_BORDER = { libero: '#22c55e', prenotato: '#f97316', occupato: '#ef4444' };
@@ -2955,12 +2955,12 @@
           if (newSeats < 1) return;
           if (newSeats >= 1 && newSeats <= 4) {
             t.shape = 'square';
-            t.w = 33;
-            t.h = 35;
+            t.w = SHAPE_DEFAULTS.square.w;
+            t.h = SHAPE_DEFAULTS.square.h;
           } else {
             t.shape = 'rect';
-            t.w = 30;
-            t.h = 55;
+            t.w = SHAPE_DEFAULTS.rect.w;
+            t.h = SHAPE_DEFAULTS.rect.h;
           }
           t.seats = newSeats;
           // Se il tavolo ha già una prenotazione, teniamo allineato il numero di
@@ -4412,11 +4412,11 @@
     if (!area || !seatsInput) return;
     const seats = parseInt(seatsInput.value) || 0;
     if (seats >= 1 && seats <= 4) {
-      newShapeState = { shape: 'square', w: 33, h: 35 };
+      newShapeState = { shape: 'square', w: SHAPE_DEFAULTS.square.w, h: SHAPE_DEFAULTS.square.h };
       area.innerHTML = '';
       updateConfirmState(true);
     } else {
-      newShapeState = { shape: 'rect', w: 30, h: 55 };
+      newShapeState = { shape: 'rect', w: SHAPE_DEFAULTS.rect.w, h: SHAPE_DEFAULTS.rect.h };
       area.innerHTML = '';
       updateConfirmState(true);
     }
@@ -5781,8 +5781,8 @@
                   number,
                   seats,
                   shape: 'rect',
-                  w: 30,
-                  h: 55,
+                  w: SHAPE_DEFAULTS.rect.w,
+                  h: SHAPE_DEFAULTS.rect.h,
                   stage,
                   x: Math.min(90, 10 + (idx % 9) * 9),
                   y: Math.min(90, 10 + Math.floor(idx / 9) * 12)
