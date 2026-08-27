@@ -24,11 +24,16 @@
   #mapPanel { width: 100%; max-width: 1500px; display: flex; flex-direction: column; }
   #mapWrap { position: relative; overflow: hidden; min-height: 540px; touch-action: none; }
   #bgImg { max-width: 100%; width: auto; height: auto; user-select: none; -webkit-user-drag: none; }
+
+  /* Testo dei pulsanti azione (Occupa/Libera/Salva...): si adatta alla
+     larghezza reale del pulsante invece di restare fisso, così non va mai
+     a capo né trabocca quando il riquadro è stretto o largo. */
+  .autosize-btn-text { font-size: clamp(9px, 7.5cqi, 13px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   
   @media (min-width: 1024px) {
-    html.kiosk-equalize, html.kiosk-equalize body { height: 100vh; overflow: hidden; }
+    html.kiosk-equalize, html.kiosk-equalize body { min-height: 100vh; }
     body { display: flex; flex-direction: column; }
-    html.kiosk-equalize main { flex: 1 1 auto; min-height: 0; overflow: hidden; align-items: stretch; }
+    html.kiosk-equalize main { flex: 1 1 auto; min-height: 0; align-items: stretch; }
     html.kiosk-equalize main > * { height: 100%; min-height: 0; overflow-y: auto; }
     html.kiosk-equalize main > #mapPanel { overflow-y: hidden !important; }
     #dayTabsRow { overflow-y: hidden; }
@@ -39,6 +44,11 @@
     html.kiosk-equalize #mapPanel { max-width: none; }
     html.kiosk-equalize #mapWrap { flex: 1 1 auto; min-height: 0; max-height: none; }
     html.kiosk-equalize #tableList { max-height: 802px; }
+    /* L'immagine deve restare sempre interamente visibile (mai tagliata in
+       altezza) dentro il riquadro mappa, anche quando questo viene forzato
+       a un'altezza fissa in Schermo intero. */
+    html.kiosk-equalize #mapInner { max-height: 100%; min-height: 0; }
+    html.kiosk-equalize #bgImg { max-height: 100%; width: auto; height: auto; }
   }
 
   .table-marker {
@@ -444,10 +454,10 @@
       <div id="kioskTitleCard" class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg shadow-black/20 p-4 sm:p-5 flex items-center justify-center">
         <span id="kioskTitleText" class="text-white font-black text-lg sm:text-xl tracking-tight text-center"></span>
       </div>
+      <div id="kioskSponsorRow" class="hidden"></div>
       <div id="kioskDateCard" class="hidden bg-slate-800 border border-orange-500/40 rounded-2xl shadow-lg shadow-black/20 p-3 sm:p-4 items-center justify-center">
         <span id="kioskDateText" class="text-orange-300 font-bold text-sm sm:text-base tracking-wide text-center"></span>
       </div>
-      <div id="kioskSponsorRow" class="hidden"></div>
       <div id="kioskFooterOriginal" class="text-center text-[11px] text-slate-500 mt-auto pt-4">
         <span class="sempleo-logo-bg" style="width:70px;height:20px;" role="img" aria-label="Sempleo"></span>
         <p class="text-[10px]">Gestione Eventi</p>
@@ -1265,11 +1275,28 @@
     applyTransform();
   }
 
-  function resetZoomAndPan() {
-    zoom = 1;
-    panX = 0;
-    panY = 0;
+  const DEFAULT_ZOOM = 1.2;
+
+  // Zoom di default (120%) centrato sull'immagine. #mapInner è già centrato
+  // dal flex del riquadro (align-items/justify-content:center) nella sua
+  // dimensione "base" (non zoomata); lo scale() con transform-origin:0 0 lo
+  // fa crescere dal proprio angolo in alto a sinistra, quindi per restare
+  // centrato basta traslarlo indietro di metà della crescita: base*(1-zoom)/2.
+  function applyDefaultZoom() {
+    const img = el('bgImg');
+    if (!img) return;
+    const imgRect = img.getBoundingClientRect();
+    if (imgRect.width < 20) { zoom = DEFAULT_ZOOM; panX = 0; panY = 0; applyTransform(); return; }
+    const baseW = imgRect.width / zoom;
+    const baseH = imgRect.height / zoom;
+    zoom = DEFAULT_ZOOM;
+    panX = baseW * (1 - zoom) / 2;
+    panY = baseH * (1 - zoom) / 2;
     applyTransform();
+  }
+
+  function resetZoomAndPan() {
+    applyDefaultZoom();
   }
 
   // ====== UTILITY ======
@@ -2733,13 +2760,13 @@
     if (!selectedId) {
       card.style.display = 'none';
       card.innerHTML = '';
-      if (isTouchPrimaryDevice && modalBackdrop) {
+      if (tableListCard && tableListCard.parentNode && card.parentNode !== tableListCard.parentNode) {
+        tableListCard.parentNode.insertBefore(card, tableListCard);
+      }
+      card.classList.remove('max-w-md', 'w-full', 'max-h-[90vh]', 'overflow-y-auto', 'mx-auto');
+      if (modalBackdrop) {
         modalBackdrop.classList.add('hidden');
         modalBackdrop.classList.remove('flex');
-        if (tableListCard && tableListCard.parentNode && card.parentNode !== tableListCard.parentNode) {
-          tableListCard.parentNode.insertBefore(card, tableListCard);
-        }
-        card.classList.remove('max-w-md', 'w-full', 'max-h-[90vh]', 'overflow-y-auto', 'mx-auto');
       }
       return;
     }
@@ -2752,14 +2779,24 @@
     }
     card.style.display = 'block';
     const modalBackdropEl = el('detailModalBackdrop');
+    const kioskLeftColumnEl = el('kioskLeftColumn');
+    const kioskSponsorRowEl = el('kioskSponsorRow');
     if (isTouchPrimaryDevice && modalBackdropEl) {
       modalBackdropEl.appendChild(card);
       card.classList.add('max-w-md', 'w-full', 'max-h-[90vh]', 'overflow-y-auto', 'mx-auto');
       modalBackdropEl.classList.remove('hidden');
       modalBackdropEl.classList.add('flex');
-    } else if (modalBackdropEl) {
-      modalBackdropEl.classList.add('hidden');
-      modalBackdropEl.classList.remove('flex');
+    } else {
+      if (modalBackdropEl) {
+        modalBackdropEl.classList.add('hidden');
+        modalBackdropEl.classList.remove('flex');
+      }
+      if (kioskMode && kioskLeftColumnEl && kioskSponsorRowEl) {
+        // Schermo intero: il riquadro del tavolo va sotto il titolo, a sinistra,
+        // della stessa larghezza del riquadro titolo, e gli sponsor restano sotto di lui.
+        if (card.parentNode !== kioskLeftColumnEl) kioskLeftColumnEl.insertBefore(card, kioskSponsorRowEl);
+        card.classList.remove('max-w-md', 'w-full', 'max-h-[90vh]', 'overflow-y-auto', 'mx-auto');
+      }
     }
     const r = curDayRes()[t.id] || { name: '', phone: '', guests: '', date: '', time: '', notes: '', arrived: false };
     const st = tableStatus(t.id);
@@ -2850,18 +2887,18 @@
         </details>
       `;
       html += `
-        <div class="flex gap-2 flex-wrap mt-5 pt-4 border-t border-slate-700">
-          <button id="saveTableBtn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-2xl shadow-lg shadow-orange-900/30 active:scale-95 uppercase tracking-wider text-xs py-2.5 transition">Salva modifiche</button>
-          <button id="deleteTableBtn" class="flex-1 bg-transparent border border-red-800 text-red-400 hover:bg-red-950/40 rounded-2xl uppercase tracking-wider text-xs font-bold py-2.5 transition">Elimina tavolo</button>
-          <button id="closeDetailBtn" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-2xl uppercase tracking-wider text-xs py-2.5 transition">Chiudi ed esci</button>
+        <div class="flex gap-2 flex-wrap mt-5 pt-4 border-t border-slate-700 [container-type:inline-size]">
+          <button id="saveTableBtn" class="autosize-btn-text flex-1 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-2xl shadow-lg shadow-orange-900/30 active:scale-95 uppercase tracking-wider py-2.5 transition">Salva modifiche</button>
+          <button id="deleteTableBtn" class="autosize-btn-text flex-1 bg-transparent border border-red-800 text-red-400 hover:bg-red-950/40 rounded-2xl uppercase tracking-wider font-bold py-2.5 transition">Elimina tavolo</button>
+          <button id="closeDetailBtn" class="autosize-btn-text w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold rounded-2xl uppercase tracking-wider py-2.5 transition">Chiudi ed esci</button>
         </div>
       `;
     } else {
       html += `
-        <div class="flex gap-2 flex-wrap mt-5">
-          <button id="occupyTableBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-extrabold rounded-2xl shadow-lg shadow-red-900/30 active:scale-95 uppercase tracking-wider text-xs py-2.5 transition">🔴 Occupa tavolo</button>
-          <button id="freeTableBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-extrabold rounded-2xl shadow-lg shadow-green-900/30 active:scale-95 uppercase tracking-wider text-xs py-2.5 transition">🟢 Libera tavolo</button>
-          <button id="saveAndCloseKioskBtn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-2xl shadow-lg shadow-orange-900/30 active:scale-95 uppercase tracking-wider text-xs py-2.5 transition">💾 Salva modifiche e chiudi</button>
+        <div class="flex gap-2 flex-wrap mt-5 [container-type:inline-size]">
+          <button id="occupyTableBtn" class="autosize-btn-text flex-1 bg-red-600 hover:bg-red-700 text-white font-extrabold rounded-2xl shadow-lg shadow-red-900/30 active:scale-95 uppercase tracking-wider py-2.5 transition">🔴 Occupa tavolo</button>
+          <button id="freeTableBtn" class="autosize-btn-text flex-1 bg-green-600 hover:bg-green-700 text-white font-extrabold rounded-2xl shadow-lg shadow-green-900/30 active:scale-95 uppercase tracking-wider py-2.5 transition">🟢 Libera tavolo</button>
+          <button id="saveAndCloseKioskBtn" class="autosize-btn-text w-full bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-2xl shadow-lg shadow-orange-900/30 active:scale-95 uppercase tracking-wider py-2.5 transition">💾 Salva modifiche e chiudi</button>
         </div>
       `;
     }
@@ -4926,6 +4963,7 @@
     if (on) { requestFullscreen(); }
     else { exitFullscreen(); closePinModal(); }
     isExitingKiosk = false;
+    renderDetail();
     requestAnimationFrame(renderMap);
   }
 
@@ -5313,7 +5351,7 @@
     // appena l'immagine è pronta rifacciamo un render con la misura corretta,
     // così i tavoli non "saltano" di dimensione alla prima interazione.
     const bgImgEl = el('bgImg');
-    if (bgImgEl) bgImgEl.addEventListener('load', renderMap);
+    if (bgImgEl) bgImgEl.addEventListener('load', () => { renderMap(); applyDefaultZoom(); });
 
     load();
     initFirebaseSync();
